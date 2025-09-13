@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"log"
@@ -67,6 +69,16 @@ func main() {
 	// 排序
 	sort.Strings(importPaths)
 
+	if len(importPaths) == 0 {
+		// 没有适配器，删除all目录
+		log.Println("No adapters found. Ensuring generated file does not exist.")
+		if err := os.Remove(*outputFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Fatalf("Failed to remove existing file %s: %v", *outputFile, err)
+		}
+		log.Printf("Successfully ensured %s is removed.", *outputFile)
+		return // 任务完成
+	}
+
 	// 使用模板生成文件内容
 	tmpl, err := template.New("all.go").Parse(allGoTemplate)
 	if err != nil {
@@ -86,17 +98,22 @@ func main() {
 		log.Fatalf("Failed to execute template: %v", err)
 	}
 
+	// 对代码进行格式化
+	formattedSource, err := format.Source(buffer.Bytes())
+	if err != nil {
+		log.Fatalf("Failed to format generated source code: %v", err)
+	}
+
 	// 保证输出目录存在
 	if err := os.MkdirAll(filepath.Dir(*outputFile), 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
 	// 生成内容写入文件
-	if err := os.WriteFile(*outputFile, buffer.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(*outputFile, formattedSource, 0644); err != nil {
 		log.Fatalf("Failed to write to %s: %v", *outputFile, err)
 	}
-
-	log.Printf("Successfully generated %s with %d adapter imports.", *outputFile, len(importPaths))
+	log.Printf("Successfully generated and formatted %s with %d adapter imports.", *outputFile, len(importPaths))
 }
 
 // isGoPackage 检查一个目录是否包含至少一个 .go 文件

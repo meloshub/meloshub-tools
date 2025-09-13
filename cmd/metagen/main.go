@@ -51,6 +51,16 @@ func main() {
 		}
 	}
 
+	// 没有适配器就删除yml文件并结束流程
+	if len(allMetadata) == 0 {
+		log.Println("No metadata found. Ensuring adapters.yaml does not exist.")
+		if err := os.Remove(*outputFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Fatalf("Failed to remove existing file %s: %v", *outputFile, err)
+		}
+		log.Printf("Successfully ensured %s is removed.", *outputFile)
+		return
+	}
+
 	// 在写入文件前进行冲突检查
 	if err := checkConflicts(allMetadata, *outputFile); err != nil {
 		// 如果发生冲突则报错，且CI将会失败
