@@ -131,7 +131,7 @@ func checkConflicts(newMetadata []adapter.Metadata, filePath string) error {
 
 // isIrrelevantPackage 过滤无需扫描的包
 func isIrrelevantPackage(pkg *packages.Package) bool {
-	return strings.Contains(pkg.PkgPath, "/tools") || len(pkg.GoFiles) == 0
+	return strings.Contains(pkg.PkgPath, "/tests") || len(pkg.GoFiles) == 0
 }
 
 // findMetadataInPackage 遍历包中的所有文件，寻找元数据
